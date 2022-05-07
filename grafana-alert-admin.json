@@ -1,0 +1,62 @@
+{
+  "template_files": {
+    "telegram": "{{ define \"myalert\" }}\n{{ if eq .Status \"firing\" }} \n<b>Alarm</b> \n{{ end -}}\n{{ if ne .Status \"firing\" }} \n<b>Resolve</b> \n{{ end -}}\n<a href='{{ .Annotations.runbook_url }}'>{{ .Labels.target }} </a>{{ .Annotations.summary }} \n  {{ if gt (len .SilenceURL ) 0 }}\n<a href='{{ .SilenceURL }}'>Silence notification</a>\n  {{ end }}\n  {{ if gt (len .DashboardURL ) 0 }}\nDashboard: {{ .DashboardURL }}\n  {{ end }}\n{{ end }}\n\n{{ define \"telegram\" }}\n  {{ if gt (len .Alerts.Firing) 0 }}\n    {{ range .Alerts.Firing }} {{ template \"myalert\" .}} {{ end }}\n  {{ end }}\n  {{ if gt (len .Alerts.Resolved) 0 }}\n    {{ range .Alerts.Resolved }} {{ template \"myalert\" .}} {{ end }}\n  {{ end }}\n{{ end }}"
+  },
+  "alertmanager_config": {
+    "route": {
+      "receiver": "grafana-default-email",
+      "routes": [
+        {
+          "receiver": "Telegram",
+          "object_matchers": [
+            [
+              "use",
+              "=",
+              "telegram"
+            ]
+          ],
+          "continue": true,
+          "repeat_interval": "1m"
+        }
+      ]
+    },
+    "templates": [
+      "telegram"
+    ],
+    "receivers": [
+      {
+        "name": "grafana-default-email",
+        "grafana_managed_receiver_configs": [
+          {
+            "uid": "woMkna_nz",
+            "name": "email receiver",
+            "type": "email",
+            "disableResolveMessage": false,
+            "settings": {
+              "addresses": "<example@email.com>"
+            },
+            "secureFields": {}
+          }
+        ]
+      },
+      {
+        "name": "Telegram",
+        "grafana_managed_receiver_configs": [
+          {
+            "uid": "ZTQinal7k",
+            "name": "Telegram",
+            "type": "telegram",
+            "disableResolveMessage": false,
+            "settings": {
+              "chatid": "186401308",
+              "message": "{{ template \"telegram\" .}}"
+            },
+            "secureFields": {
+              "bottoken": true
+            }
+          }
+        ]
+      }
+    ]
+  }
+}

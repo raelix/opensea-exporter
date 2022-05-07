@@ -15,22 +15,18 @@ The following commands will install:
 - grafana
 - alert manager
 
-Run on a shell:
 ```bash
-git clone https://github.com/prometheus-operator/kube-prometheus.git
-
-cd kube-prometheus
-
-kubectl create -f manifests/setup
-
-kubectl create -f manifests/
-
-kubectl --namespace monitoring patch svc prometheus-k8s -p '{"spec": {"type": "NodePort"}}'
-
-kubectl --namespace monitoring patch svc alertmanager-main -p '{"spec": {"type": "NodePort"}}'
-
-kubectl --namespace monitoring patch svc grafana -p '{"spec": {"type": "NodePort"}}'
+helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
+helm repo add stable https://charts.helm.sh/stable
+helm repo update
+kubectl create ns monitoring
+helm install prometheus prometheus-community/kube-prometheus-stack -n monitoring -f kube-prometheus-stack-values.yaml
+helm install json-exporter prometheus-json-exporter/ -n monitoring -f prometheus-json-exporter-values.yaml  
+kubectl --namespace monitoring patch svc prometheus-grafana -p '{"spec": {"type": "NodePort"}}'
+kubectl --namespace monitoring patch svc prometheus-kube-prometheus-prometheus -p '{"spec": {"type": "NodePort"}}'
+kubectl --namespace monitoring patch svc prometheus-kube-prometheus-alertmanager -p '{"spec": {"type": "NodePort"}}'
 ```
+
 The service patches are not required but useful for debug purposes.
 
 ### Install Prometheus JSON exporter
