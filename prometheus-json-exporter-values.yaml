@@ -93,6 +93,12 @@ serviceMonitor:
      interval: 30s                    
      scrapeTimeout: 30s               
      additionalMetricsRelabels: {}    
+   - name: shamanzs-official               
+     url: https://api.opensea.io/api/v1/collection/shamanzs-official/stats
+     labels: {}                       
+     interval: 30s                    
+     scrapeTimeout: 30s               
+     additionalMetricsRelabels: {}    
 
 #    - name: example                    # Human readable URL that will appear in Prometheus / AlertManager
 #      url: http://example.com/healthz  # The URL that json-exporter will scrape
