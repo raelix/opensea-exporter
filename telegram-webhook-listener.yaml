@@ -1,0 +1,15 @@
+apiVersion: argoproj.io/v1alpha1
+kind: EventSource
+metadata:
+  name: webhook-listener
+  namespace: argo
+spec:
+  service:
+    ports:
+      - port: 8888
+        targetPort: 8888
+  webhook:
+    event:
+      port: "8888"
+      endpoint: /event
+      method: POST

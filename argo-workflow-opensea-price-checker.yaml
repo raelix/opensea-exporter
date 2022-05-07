@@ -1,0 +1,167 @@
+apiVersion: argoproj.io/v1alpha1
+kind: WorkflowTemplate
+metadata:
+  name: fetcher
+  namespace: argo
+  labels:
+    workflows.argoproj.io/creator: system-serviceaccount-argo-argo-server
+
+
+spec:
+  templates:
+    - name: main
+      dag:
+        tasks:
+          - name: opensea-stats
+            template: opensea-stats
+            arguments:
+              parameters:
+                - name: project
+                  value: '{{workflow.parameters.project}}'
+
+          - name: get-floor
+            template: jq-filter
+            dependencies: [opensea-stats]
+            arguments:
+              parameters:
+                - name: data
+                  value: '{{tasks.opensea-stats.outputs.result}}'
+                - name: filter
+                  value: .stats.floor_price
+
+          - name: under-price
+            dependencies: [get-floor]
+            template: verify-condition
+            when: "{{workflow.parameters.under_price}} > 0"
+            arguments:
+              parameters:
+                - name: floor_price
+                  value: '{{tasks.get-floor.outputs.result}}'
+                - name: operation
+                  value: >-
+                         <
+                - name: price
+                  value: '{{workflow.parameters.under_price}}'
+
+          - name: over-price
+            dependencies: [get-floor]
+            template: verify-condition
+            when: "{{workflow.parameters.over_price}} > 0"
+            arguments:
+              parameters:
+                - name: floor_price
+                  value: '{{tasks.get-floor.outputs.result}}'
+                - name: operation
+                  value: >-
+                         >
+                - name: price
+                  value: '{{workflow.parameters.over_price}}'
+
+          - name: post-over-price
+            dependencies: [over-price]
+            template: post
+            when: "{{tasks.over-price.exitCode}} == 0 && '{{workflow.parameters.url_post_over}}' != 'url'"
+            arguments:
+              parameters:
+                - name: url
+                  value: '{{workflow.parameters.url_post_over}}'
+                - name: content
+                  value: '{"project": "{{workflow.parameters.project}}", "over":"{{workflow.parameters.over_price}}", "floor": "{{tasks.get-floor.outputs.result}}"}'
+
+        # - - name: print-floor
+        #     template: print
+        #     arguments:
+        #       parameters:
+        #         - name: message
+        #           value: '{{tasks.get-floor.outputs.result}}'
+
+#Templates
+    - name: opensea-stats
+      inputs:
+        parameters:
+          - name: project
+      http:
+        method: GET
+        url: >-
+          https://api.opensea.io/api/v1/collection/{{inputs.parameters.project}}/stats
+        headers:
+          - name: Accept
+            value: application/json
+        timeoutSeconds: 30
+        successCondition: response.statusCode == 200
+    - name: jq-filter
+      inputs:
+        parameters:
+          - name: data
+          - name: filter
+      container:
+        name: ''
+        image: 'stedolan/jq:latest'
+        command:
+          - sh
+          - '-c'
+        args: ["echo '{{inputs.parameters.data}}' | jq '{{inputs.parameters.filter}}'"]
+
+    - name: print
+      inputs:
+        parameters:
+          - name: message
+      container:
+        name: print
+        image: 'ubuntu:latest'
+        command:
+          - bash
+        args:
+          - '-c'
+          - 'echo "{{inputs.parameters.message}}"'
+
+    - name: verify-condition
+      inputs:
+        parameters:
+          - name: floor_price
+          - name: price
+          - name: operation
+      script:
+        image: python:alpine3.6
+        command:
+          - python
+        source: |
+          assert {{inputs.parameters.floor_price}} {{inputs.parameters.operation}} {{inputs.parameters.price}}
+
+    - name: post
+      inputs:
+        parameters:
+          - name: url
+          - name: content
+      http:
+        timeoutSeconds: 30 
+        url: "{{inputs.parameters.url}}"
+        method: "POST" 
+        headers:
+          - name: "Content-type"
+            value: "application/json"
+        successCondition: response.statusCode == 200
+        body: "{{inputs.parameters.content}}"
+
+  entrypoint: main
+  arguments:
+    parameters:
+      - name: project
+        value: otherdeed
+      - name: under_price
+        value: 0
+      - name: over_price
+        value: 0
+      - name: url_post_over
+        value: url
+      - name: url_post_under
+        value: url
+      - name: push_floor
+        value: false
+        enum:
+          -   true
+          -   false
+  ttlStrategy:
+    secondsAfterCompletion: 300
+  podGC:
+    strategy: OnWorkflowCompletion

@@ -1,0 +1,59 @@
+apiVersion: argoproj.io/v1alpha1
+kind: WorkflowTemplate
+metadata:
+  name: cron-workflow-creator
+  namespace: argo
+  labels:
+    example: 'true'
+spec:
+  entrypoint: main
+  templates:
+    - name: main
+      resource:
+        action: create
+        setOwnerReference: true
+        manifest: |
+          apiVersion: argoproj.io/v1alpha1
+          kind: CronWorkflow
+          metadata:
+            generateName: cronworkflow-{{workflow.parameters.project}}-
+            namespace: argo
+          spec:
+            schedule: '{{workflow.parameters.cron}}'
+            suspend: false
+            workflowSpec:
+              arguments:
+                parameters:
+                - name: project
+                  value: {{workflow.parameters.project}}
+                - name: under_price
+                  value: "{{workflow.parameters.under_price}}"
+                - name: over_price
+                  value: "{{workflow.parameters.over_price}}"
+              entrypoint: run
+              podGC:
+                strategy: OnPodCompletion
+              templates:
+              - name: run
+                steps:
+                - - name: main
+                    templateRef:
+                      name: fetcher
+                      template: main
+              ttlStrategy:
+                secondsAfterCompletion: 300
+
+  arguments:
+    parameters:
+      - name: cron
+        value: '*/5 * * * *'
+      - name: project
+        value: otherdeed
+      - name: under_price
+        value: 0
+      - name: over_price
+        value: 0
+  ttlStrategy:
+    secondsAfterCompletion: 300
+  podGC:
+    strategy: OnWorkflowCompletion

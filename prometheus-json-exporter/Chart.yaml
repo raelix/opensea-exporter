@@ -1,0 +1,15 @@
+apiVersion: v2
+appVersion: v0.3.0
+description: Install prometheus-json-exporter
+keywords:
+- metric
+- monitoring
+- prometheus
+maintainers:
+- email: schmiddim@gmx.at
+  name: schmiddim
+- email: zanhsieh@gmail.com
+  name: zanhsieh
+name: prometheus-json-exporter
+type: application
+version: 0.2.0
