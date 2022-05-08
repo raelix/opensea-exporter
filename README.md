@@ -10,7 +10,7 @@ floor price and events on Opensea. It is composed by two pieces:
 - Helm 3
 
 ## Install Metallb & Ingress controller
-```
+```bash
 helm upgrade --install --wait --timeout 15m \
   --namespace metallb-system --create-namespace \
   --repo https://metallb.github.io/metallb metallb metallb \
@@ -20,8 +20,8 @@ configInline:
   - name: default
     protocol: layer2
     addresses:
-    - 192.168.1.2-192.168.1.5
-EOF
+    - 192.168.1.2-192.168.1.3
+EOF 
 
 # install ingress-nginx
 helm upgrade --install --wait --timeout 15m \
@@ -38,6 +38,14 @@ LB_IP=$(kubectl get svc -n ingress-nginx ingress-nginx-controller \
   -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
 
 # Bind the LB IP to the FQDN defined
+```
+
+## Install Cert-manager
+
+```bash
+helm upgrade cert-manager cert-manager/ --install --wait --timeout 15m   --namespace cert-manager --create-namespace -f cert-manager-values.yaml
+kubectl apply -f staging-issuer.yaml -n cert-manager
+kubectl apply -f prod-issuer.yaml -n cert-manager
 ```
 
 ## Install Keycloak
@@ -67,6 +75,8 @@ The following commands will install:
 # helm repo add stable https://charts.helm.sh/stable
 # helm repo update
 kubectl create ns monitoring
+kubectl apply -f homeassistant-dashboard.yaml
+kubectl apply -f opensea-dashboard.yaml
 helm install prometheus prometheus-community/kube-prometheus-stack -n monitoring -f kube-prometheus-stack-values.yaml
 helm install json-exporter prometheus-json-exporter/ -n monitoring -f prometheus-json-exporter-values.yaml  
 # kubectl --namespace monitoring patch svc prometheus-grafana -p '{"spec": {"type": "NodePort"}}'
@@ -127,7 +137,11 @@ The Sensor workflow contains a couple of place holders related to the telegram c
 ## TODO
 - [ ]  Produce http post request with the main workflow
 - [ ]  Manage dinamically the sensitive data in the Sensor
-- [ ]  Push the Grafana Dashboard
+- [X]  Push the Grafana Dashboard
 - [ ]  Add Grafana Alarms based on the min/max price 
+- [X]  Add cert-manager and let's encrypt with nginx-ingress controller (https://www.digitalocean.com/community/tutorials/how-to-set-up-an-nginx-ingress-with-cert-manager-on-digitalocean-kubernetes)
+- [X]  Add Grafana SSO
+- [ ]  Add Argo SSO with Keyclock (https://stackoverflow.com/questions/65918090/want-to-integrate-argo-server-with-keycloak)
+- [ ]  Deploy the whole things automagically
 
 > Default permissions are not enough to create automatically pods on Kubernetes hence you have to modify the RBAC associated to Argo Workflow

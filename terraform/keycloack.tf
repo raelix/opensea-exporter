@@ -19,12 +19,12 @@ variable "user" {
 
 variable "url" {
   description = "The keycloack URL (e.g. http://raelix-cluster.duckdns.org)"
-  default = "http://raelix-cluster.duckdns.org"
+  default = "https://raelix-cluster.duckdns.org:8443"
 }
 
 variable "grafana_url" {
   description = "The Grafana URL (e.g. http://raelix-cluster.duckdns.org/grafana)"
-  default = "http://raelix-cluster.duckdns.org/grafana"
+  default = "https://raelix-cluster.duckdns.org:8443/grafana"
 }
 
 variable "realm" {
