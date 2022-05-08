@@ -41,19 +41,21 @@ LB_IP=$(kubectl get svc -n ingress-nginx ingress-nginx-controller \
 ```
 
 ## Install Keycloak
-```
-helm repo add bitnami https://charts.bitnami.com/bitnami
-helm install keycloak bitnami/keycloak
+```bash
+# helm repo add bitnami https://charts.bitnami.com/bitnami
+# helm install keycloak bitnami/keycloak
 kubectl create ns keycloack
 helm install keycloak keycloak/ -f keycloack-values.yaml -n keycloack
 ```
 
-## Run terraform 
+## Run terraform on Keycloack
+This procedure allow to configure keycloack to be used as OID connect server for Grafana 
 ```
 cd terraform
 terraform apply --auto-approve
 ```
 > N.B. remember that the user must have the email configured otherwise the single sign-on will fail
+
 ## Installation Monitoring stack
 The following commands will install:
 - prometheus-operator
@@ -61,15 +63,15 @@ The following commands will install:
 - alert manager
 
 ```bash
-helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
-helm repo add stable https://charts.helm.sh/stable
-helm repo update
+# helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
+# helm repo add stable https://charts.helm.sh/stable
+# helm repo update
 kubectl create ns monitoring
 helm install prometheus prometheus-community/kube-prometheus-stack -n monitoring -f kube-prometheus-stack-values.yaml
 helm install json-exporter prometheus-json-exporter/ -n monitoring -f prometheus-json-exporter-values.yaml  
-kubectl --namespace monitoring patch svc prometheus-grafana -p '{"spec": {"type": "NodePort"}}'
-kubectl --namespace monitoring patch svc prometheus-kube-prometheus-prometheus -p '{"spec": {"type": "NodePort"}}'
-kubectl --namespace monitoring patch svc prometheus-kube-prometheus-alertmanager -p '{"spec": {"type": "NodePort"}}'
+# kubectl --namespace monitoring patch svc prometheus-grafana -p '{"spec": {"type": "NodePort"}}'
+# kubectl --namespace monitoring patch svc prometheus-kube-prometheus-prometheus -p '{"spec": {"type": "NodePort"}}'
+# kubectl --namespace monitoring patch svc prometheus-kube-prometheus-alertmanager -p '{"spec": {"type": "NodePort"}}'
 ```
 
 The service patches are not required but useful for debug purposes.
