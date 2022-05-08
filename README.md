@@ -9,6 +9,51 @@ floor price and events on Opensea. It is composed by two pieces:
 - Kubernetes > 1.20
 - Helm 3
 
+## Install Metallb & Ingress controller
+```
+helm upgrade --install --wait --timeout 15m \
+  --namespace metallb-system --create-namespace \
+  --repo https://metallb.github.io/metallb metallb metallb \
+  --values - <<EOF
+configInline:
+  address-pools:
+  - name: default
+    protocol: layer2
+    addresses:
+    - 192.168.1.2-192.168.1.5
+EOF
+
+# install ingress-nginx
+helm upgrade --install --wait --timeout 15m \
+  --namespace ingress-nginx --create-namespace \
+  --repo https://kubernetes.github.io/ingress-nginx \
+  ingress-nginx ingress-nginx \
+  --values - <<EOF
+defaultBackend:
+  enabled: true
+EOF
+
+# retrieve local load balancer IP address
+LB_IP=$(kubectl get svc -n ingress-nginx ingress-nginx-controller \
+  -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
+
+# Bind the LB IP to the FQDN defined
+```
+
+## Install Keycloak
+```
+helm repo add bitnami https://charts.bitnami.com/bitnami
+helm install keycloak bitnami/keycloak
+kubectl create ns keycloack
+helm install keycloak keycloak/ -f keycloack-values.yaml -n keycloack
+```
+
+## Run terraform 
+```
+cd terraform
+terraform apply --auto-approve
+```
+> N.B. remember that the user must have the email configured otherwise the single sign-on will fail
 ## Installation Monitoring stack
 The following commands will install:
 - prometheus-operator

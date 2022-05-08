@@ -646,6 +646,9 @@ alertmanager:
 
 ## Using default values from https://github.com/grafana/helm-charts/blob/main/charts/grafana/values.yaml
 ##
+    # security:
+    #   cookie_secure: false
+    #   cookie_samesite: lax
 grafana:
 
   persistence:
@@ -658,6 +661,22 @@ grafana:
     # annotations: {}
     finalizers:
       - kubernetes.io/pvc-protection
+
+  grafana.ini:
+    server:
+      root_url: http://raelix-cluster.duckdns.org/grafana
+      serve_from_sub_path: "true"
+    auth.generic_oauth:
+      enabled: true
+      name: Keycloak
+      allow_sign_up: true
+      scopes: profile,email,groups
+      auth_url: http://raelix-cluster.duckdns.org/auth/realms/master/protocol/openid-connect/auth
+      token_url: http://raelix-cluster.duckdns.org/auth/realms/master/protocol/openid-connect/token
+      api_url: http://raelix-cluster.duckdns.org/auth/realms/master/protocol/openid-connect/userinfo
+      client_id: grafana
+      client_secret: grafana-client-secret
+      role_attribute_path: contains(groups[*], 'grafana-admin') && 'Admin' || contains(groups[*], 'grafana-dev') && 'Editor' || 'Viewer'
 
   enabled: true
   namespaceOverride: ""
@@ -689,7 +708,7 @@ grafana:
   ingress:
     ## If true, Grafana Ingress will be created
     ##
-    enabled: false
+    enabled: true
 
     ## IngressClassName for Grafana Ingress.
     ## Should be provided if Ingress is enable.
@@ -698,7 +717,10 @@ grafana:
 
     ## Annotations for Grafana Ingress
     ##
-    annotations: {}
+    annotations:
+      kubernetes.io/ingress.class: nginx
+      nginx.ingress.kubernetes.io/ssl-redirect: "false"
+
       # kubernetes.io/ingress.class: nginx
       # kubernetes.io/tls-acme: "true"
 
@@ -709,12 +731,12 @@ grafana:
     ## Hostnames.
     ## Must be provided if Ingress is enable.
     ##
-    # hosts:
-    #   - grafana.domain.com
-    hosts: []
+    hosts:
+      - raelix-cluster.duckdns.org
+    # hosts: []
 
     ## Path for grafana ingress
-    path: /
+    path: /grafana
 
     ## TLS configuration for grafana Ingress
     ## Secret must be manually created in the namespace
@@ -795,6 +817,8 @@ grafana:
   ##
   service:
     portName: http-web
+    type: ClusterIP
+    # nodePort: 30096
 
   serviceMonitor:
     # If true, a ServiceMonitor CRD is created for a prometheus operator
